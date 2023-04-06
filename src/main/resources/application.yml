@@ -1,0 +1,75 @@
+server:
+  port: 8090
+#micrometer
+management:
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info
+  endpoint:
+    shutdown:
+      enabled: true
+spring:
+  application:
+    name: kafka-processor
+  sleuth:
+    sampler:
+      probability: 1
+  zipkin:
+    baseUrl: http://localhost:9411
+    sender:
+      type: web
+  output:
+    ansi:
+      enabled: always
+  cloud:
+    stream:
+      function:
+        definition: processMessageDetail
+      bindings:
+        applicationMetrics:
+          destination: Topic_1
+        message-detail-out-0:
+          destination: Topic_1
+          producer:
+            use-native-encoding: true
+        processMessageDetail-in-0:
+          destination: Topic_1
+          consumer:
+            use-native-decoding: true
+        processMessageDetail-out-0:
+          destination: Topic_2
+          producer:
+            use-native-encoding: true
+      kafka:
+        binder:
+          brokers: localhost
+          defaultBrokerPort: 29092
+          autoCreateTopics: false
+          requiredAcks: all
+        bindings:
+          message-detail-out-0:
+            producer:
+              configuration:
+                value.serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+                schema.registry.url: http://localhost:8081
+          processMessageDetail-in-0:
+            consumer:
+              configuration:
+                value.deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+                schema.registry.url: http://localhost:8081
+                specific.avro.reader: true
+          processMessageDetail-out-0:
+            producer:
+              configuration:
+                value.serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+                schema.registry.url: http://localhost:8081
+logging:
+  level:
+    org:
+      springframework:
+        cloud:
+          sleuth: DEBUG
